@@ -1,6 +1,7 @@
 {
-  "orgName": "Demo company",
+  "orgName": "SalesboltOrg-Scratch",
   "edition": "Developer",
+  "hasSampleData": true,
   "features": ["EnableSetPasswordInApi"],
   "settings": {
     "lightningExperienceSettings": {
