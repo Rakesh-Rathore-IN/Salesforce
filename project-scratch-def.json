@@ -1,6 +1,6 @@
 {
-  "orgName": "SalesboltTestOrg-Scratch",
-  "edition": "Partner Developer",
+  "orgName": "SalesboltTesting",
+  "edition": "Developer",
   "hasSampleData": true,
   "features": ["EnableSetPasswordInApi"],
   "settings": {
