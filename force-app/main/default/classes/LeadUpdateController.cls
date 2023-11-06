@@ -7,7 +7,7 @@ public class LeadUpdateController {
             // Modify the Lead records
             for (Lead lead : leadsToUpdate) {
                 lead.Status = 'Contacted';
-                lead.Company = 'Salesbolt';
+                lead.Company = 'Updated Company Name';
             }
 
             // Update the Lead records
