@@ -21,7 +21,7 @@ jobs:
                   PMD_VERSION=7.0.0-rc4
                   wget "https://github.com/pmd/pmd/releases/download/pmd_releases%2F$PMD_VERSION/pmd-dist-$PMD_VERSION-bin.zip" -O pmd-bin-$PMD_VERSION.zip
                   unzip pmd-bin-$PMD_VERSION.zip -d ~/pmd
-                  ~/pmd/bin/run.sh pmd --version
+                  ~/pmd/pmd-bin-7.0.0-rc4/bin/run.sh pmd --version
             # Run PMD scan
             - name: 'Run PMD scan'
               run: ~/pmd/bin/run.sh pmd -d force-app -R pmd/ruleset.xml -f html
