@@ -6,7 +6,8 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the rc-merge branch
   pull_request:
-    branches: rc-merge
+    branches:
+      - rc-merge
 
 # Jobs to be executed
 jobs:
@@ -20,10 +21,9 @@ jobs:
       # Install PMD
       - name: 'Install PMD'
         run: |
-          PMD_VERSION=`cat pmd/pmd-version.txt`
-          wget https://github.com/pmd/pmd/releases/download/pmd_releases%2F$PMD_VERSION/pmd-bin-$PMD_VERSION.zip
-          unzip pmd-bin-$PMD_VERSION.zip -d ~
-          mv ~/pmd-bin-$PMD_VERSION ~/pmd
+          PMD_VERSION=$(cat pmd/pmd-version.txt)
+          wget "https://github.com/pmd/pmd/releases/download/pmd_releases%2F$PMD_VERSION/pmd-bin-$PMD_VERSION.zip" -O pmd-bin-$PMD_VERSION.zip
+          unzip pmd-bin-$PMD_VERSION.zip -d ~/pmd
           ~/pmd/bin/run.sh pmd --version
 
       # Run PMD scan
