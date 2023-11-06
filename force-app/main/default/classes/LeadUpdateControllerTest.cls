@@ -4,7 +4,7 @@ public class LeadUpdateControllerTest {
     static void testUpdateLeads() {
         // Create a test Lead record with 'Open' status
         Lead testLead = new Lead(
-            FirstName = 'Test7',
+            FirstName = 'Test8',
             LastName = 'Lead',
             Company = 'Test Company',
             Status = 'Open'
