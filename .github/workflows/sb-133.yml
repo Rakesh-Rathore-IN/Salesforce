@@ -43,7 +43,7 @@ jobs:
 
       # Create Package
       - name: 'RC Package Create'
-        run: sfdx force:package:version:create --skip-validation=true -p "Build RC" -w 10 -x -c -v rakesh.salesbolt@metacube.com 
+        run: sfdx force:package:version:create --skip-validation -p "Build RC" -w 10 -x -c -v rakesh.salesbolt@metacube.com 
 
       # Create scratch org
       - name: 'Create scratch org'
