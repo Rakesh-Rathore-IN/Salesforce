@@ -2,11 +2,27 @@
   "packageDirectories": [
     {
       "path": "force-app",
-      "default": true
+      "default": true,
+      "package": "Build RC",
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "versionDescription": "Testing For CI CD"
+    },
+    {
+      "path": "force-app",
+      "package": "Build",
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "default": false,
+      "versionDescription": "Testing For CI CD"
     }
   ],
-  "name": "sb133",
-  "namespace": "",
+  "name": "SB133",
+  "namespace": "Build2023",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "58.0"
+  "sourceApiVersion": "58.0",
+  "packageAliases": {
+    "Build RC": "0Ho5g000000oMaLCAU",
+    "Build": "0Ho5g000000oMaQCAU"
+  }
 }
