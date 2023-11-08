@@ -57,4 +57,4 @@ jobs:
         run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
 
       - name: 'Install package on scratch org'
-        run: sfdx force:package:install -p "${{package_version}}" --target-org InstallTesting -w 10
+        run: sfdx force:package:install -p "${{steps.package_version}}" --target-org InstallTesting -w 10
