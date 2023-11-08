@@ -43,16 +43,7 @@ jobs:
 
       # Create Package
       - name: 'RC Package Create'
-        run: sfdx force:package:version:create -p "Build RC" -w 10 -x -c -v rakesh.salesbolt@metacube.com | tee package_creation_output.txt
-        shell: bash
-      # The command output will be saved to "package_creation_output.txt"
-
-      # Extract Package ID from the command output
-      - name: 'Extract Package ID'
-        run: |
-          package_id=$(grep "Package Id:" package_creation_output.txt | awk '{print $3}')
-          echo "Package ID: $package_id"
-        shell: bash
+        run: sfdx force:package:version:create -p "Build RC" -w 10 -x -c -v rakesh.salesbolt@metacube.com 
 
       # Create scratch org
       - name: 'Create scratch org'
@@ -60,4 +51,4 @@ jobs:
 
       # Install package on scratch org
       - name: 'Install package on scratch org'
-        run: sf package install --package $package_id
+        run: sfdx force:package:install --package "Build RC" -w 10 -s -r -u scratch-org
