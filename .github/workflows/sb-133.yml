@@ -34,17 +34,14 @@ jobs:
         run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
 
       - name: 'RC Package Create'
+        run: sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation
+    
+      - name: Query Package Version
+        id: package_version
         run: |
-          sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json > output.json
-          for /f %%i in (output.json) do set package_version_id=%%i
-          echo "Package Version ID: %package_version_id%"
-
-
-      - name: 'Get Package Version ID'
-        id: extract_version_id
-        run: |
-          package_version_id=$(echo "$package_version_output" | jq -r '.result.SubscriberPackageVersionId')
-          echo "::set-output name=package_version_id::$package_version_id"
+          PACKAGE_VERSION=$(sfdx force:package:version:list -p "Build RC" --concise | tail -n 1 | cut -f 2)
+          echo "::set-output name=package_version::$PACKAGE_VERSION"
+        shell: bash
 
       - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
         shell: bash
@@ -60,8 +57,4 @@ jobs:
         run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
 
       - name: 'Install package on scratch org'
-        run: |
-          sfdx force:package:install -p ${{ steps.extract_version_id.outputs.package_version_id }} -u InstallTesting -w 10
-
-      - name: 'Use Package Version ID'
-        run: echo "Package Version ID:${{ steps.extract_version_id.outputs.package_version_id }}"
+        run: sfdx force:package:install -p "Build RC@${{ steps.package_version.outputs.package_version }}" -u InstallTesting -w 10
