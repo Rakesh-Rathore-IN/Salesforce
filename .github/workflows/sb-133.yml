@@ -51,4 +51,4 @@ jobs:
 
       # Install package on scratch org
       - name: 'Install package on scratch org'
-        run: sf package install --package "Build RC"
+        run: sf package install --package build_rc
