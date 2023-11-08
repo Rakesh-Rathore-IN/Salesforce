@@ -48,10 +48,27 @@ jobs:
       # Create scratch org
       #- name: 'Create scratch org'
       #  run: sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -s -d 1 -w 30 -n
-
+      
+      # Store secret for dev hub
+      - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
+        shell: bash
+        run: |
+          echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
+          secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
+          if [ $secretFileSize == 1 ]; then
+            echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
+            exit 1;
+          fi
+          
+      # Authenticate Normal Org
+      - name: 'Authenticate Dev Hub'
+        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
+      
       # Install package on scratch org
       - name: 'Install package on scratch org'
-        run: sfdx force:package:install --package "Build RC"  --wait 10 --publishwait 10 --targetusername test-mqjmsumxdgl1@example.com
+        run: sf package install --package "Build RC" --target-org InstallTesting
+    
+      # run: sfdx force:package:install --package "Build RC"  --wait 10 --publishwait 10 --targetusername test-mqjmsumxdgl1@example.com
 
       # Housekeeping
       #- name: 'Delete scratch org'
