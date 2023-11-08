@@ -1,23 +1,17 @@
-# This is a basic workflow to help you get started with Actions
 name: CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
   pull_request:
     branches: rc-merge
 
-# Jobs to be executed
 jobs:
   Create-package:
     runs-on: ubuntu-latest
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
-      # Checkout the source code
       - name: 'Checkout source code'
         uses: actions/checkout@v2
 
-      # Install Salesforce CLI
       - name: 'Install Salesforce CLI'
         run: |
           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
@@ -26,7 +20,6 @@ jobs:
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
           ~/sfdx/bin/sfdx version
 
-      # Store secret for dev hub
       - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
         shell: bash
         run: |
@@ -37,19 +30,19 @@ jobs:
             exit 1;
           fi
 
-      # Authenticate dev hub
       - name: 'Authenticate Dev Hub'
         run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
 
-      # Create Package
       - name: 'RC Package Create'
-        run: sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation
+        run: |
+          package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
+          echo "Package Version Output: $package_version_output"
 
-      # Create scratch org
-      #- name: 'Create scratch org'
-      #  run: sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -s -d 1 -w 30 -n
-      
-      # Store secret for dev hub
+      - name: 'Get Package Version ID'
+        run: |
+          package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
+          echo "Package Version ID: $package_version_id"
+
       - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
         shell: bash
         run: |
@@ -60,18 +53,8 @@ jobs:
             exit 1;
           fi
           
-      # Authenticate Normal Org
-      - name: 'Authenticate Dev Hub'
+      - name: 'Authenticate Normal Org'
         run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
-      
-      # Install package on scratch org
+
       - name: 'Install package on scratch org'
-        run: sf package install --package "Build RC" --target-org InstallTesting
-    
-      # run: sfdx force:package:install --package "Build RC"  --wait 10 --publishwait 10 --targetusername test-mqjmsumxdgl1@example.com
-
-      # Housekeeping
-      #- name: 'Delete scratch org'
-      #  if: always()
-      #  run: sfdx force:org:delete -p -u scratch-org
-
+        run: sfdx force:package:install -p $package_version_id -u InstallTesting
