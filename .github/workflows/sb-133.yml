@@ -42,8 +42,8 @@ jobs:
         run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
 
       # Create Package
-      #- name: 'RC Package Create'
-      #  run: sfdx force:package:version:create -x -p "Build RC" -w 10 -x -c -v rakesh.salesbolt@metacube.com 
+      - name: 'RC Package Create'
+        run: sfdx force:package:version:create --codecoverage --skipvalidation -p "Build RC" -w 10 -x -c -v rakesh.salesbolt@metacube.com 
 
       # Create scratch org
       - name: 'Create scratch org'
@@ -51,7 +51,7 @@ jobs:
 
       # Install package on scratch org
       - name: 'Install package on scratch org'
-        run: sfdx force:package:install --package 04t5g000000N0lRAAS --wait 10 --publishwait 10 --targetusername scratch-org
+        run: sfdx force:package:install  --wait 10 --publishwait 10 --targetusername scratch-org
 
       # Housekeeping
       - name: 'Delete scratch org'
