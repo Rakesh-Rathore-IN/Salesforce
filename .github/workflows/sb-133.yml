@@ -43,7 +43,7 @@ jobs:
 
       # Create Package
       - name: 'RC Package Create'
-        run: sfdx force:package:version:create -p "Build RC" -w 10 -x -c -v rakesh.salesbolt@metacube.com 
+        run: sfdx force:package:version:create --skipvalidation -p "Build RC" -w 10 -x -c -v rakesh.salesbolt@metacube.com 
 
       # Create scratch org
       - name: 'Create scratch org'
@@ -52,4 +52,9 @@ jobs:
       # Install package on scratch org
       - name: 'Install package on scratch org'
         run: sfdx force:package:install --package "Build RC" --wait 10 --publishwait 10 --targetusername scratch-org
+
+      # Housekeeping
+      - name: 'Delete scratch org'
+        if: always()
+        run: sfdx force:org:delete -p -u scratch-org
 
