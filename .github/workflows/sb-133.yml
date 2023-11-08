@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  pull_request:
+  push:
     branches: rc-merge
 
 jobs:
@@ -39,9 +39,10 @@ jobs:
           echo "Package Version Output: $package_version_output"
 
       - name: 'Get Package Version ID'
+        id: extract_version_id
         run: |
-          package_version_id=$(echo $package_version_output | jq -r '.path.to.SubscriberPackageVersionId')
-          echo "Package Version ID: $package_version_id"
+          package_version_id=$(echo "$package_version_output" | jq -r '.result.SubscriberPackageVersionId')
+          echo "::set-output name=package_version_id::$package_version_id"
 
       - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
         shell: bash
@@ -57,4 +58,8 @@ jobs:
         run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
 
       - name: 'Install package on scratch org'
-        run: sfdx force:package:install -p $package_version_id -u InstallTesting
+        run: |
+          sfdx force:package:install -p ${{ steps.extract_version_id.outputs.package_version_id }} -u InstallTesting -w 10
+
+      - name: 'Use Package Version ID'
+        run: echo "Package Version ID:${{ steps.extract_version_id.outputs.package_version_id }}"
