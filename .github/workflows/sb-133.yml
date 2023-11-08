@@ -35,8 +35,9 @@ jobs:
 
       - name: 'RC Package Create'
         run: |
-          package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
-          echo "Package Version Output: $package_version_output"
+          sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json > output.json
+          set /p package_version_id=<output.json
+          echo "Package Version ID: %package_version_id%"
 
       - name: 'Get Package Version ID'
         id: extract_version_id
