@@ -51,4 +51,5 @@ jobs:
 
       # Install package on scratch org
       - name: 'Install package on scratch org'
-        run: sfdx force:package:install --package "Build RC" -w 10 -s -r -u scratch-org
+        run: sfdx force:package:install --package "Build RC" --wait 10 --publishwait 10 --targetusername scratch-org
+
