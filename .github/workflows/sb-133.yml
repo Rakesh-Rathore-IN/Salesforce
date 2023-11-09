@@ -79,7 +79,7 @@ jobs:
           from: 'rakesh.rathore@metacube.com'
           body: |
             The GitHub Actions workflow has completed successfully.
-            Scratch Org ID: ${{ needs.create-scratch-org.outputs.scratch-org-id }}
-            Scratch Org Username: ${{ needs.create-scratch-org.outputs.scratch-org-username }}
-            Scratch Org Password: ${{ needs.create-scratch-org.outputs.scratch-org-password }}
-            Scratch Org URL: ${{ needs.create-scratch-org.outputs.scratch-org-url }}
+            Scratch Org ID: ${{ needs.create-scratch-org.outputs.id }}
+            Scratch Org Username: ${{ needs.create-scratch-org.outputs.username }}
+            Scratch Org Password: ${{ needs.create-scratch-org.outputs.password }}
+            Scratch Org URL: ${{ needs.create-scratch-org.outputs.url }}
