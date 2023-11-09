@@ -42,13 +42,14 @@ jobs:
       - name: Create Scratch Org
         id: createScratchOrg
         run: |
-          scratch_org_output=$(sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json)
-          echo "Scratch Org Output: $scratch_org_output"
+          sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10
+          #scratch_org_output=$(sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json)
+          #echo "Scratch Org Output: $scratch_org_output"
           #echo "::set-output name=scratch-org-url::$(echo $scratch_org_output | jq -r '.result.LoginUrl')"
           #echo "::set-output name=scratch-org-username::$(echo $scratch_org_output | jq -r '.result.SignupUsername')"
           #echo "::set-output name=scratch-org-id::$(echo $scratch_org_output | jq -r '.result.Id')"
-          generate_password_output=$(sfdx force:user:password:generate -u scratch-org --json)
-          echo "Generate Password Output: $generate_password_output"
+          #generate_password_output=$(sfdx force:user:password:generate -u scratch-org --json)
+         # echo "Generate Password Output: $generate_password_output"
           #echo "::set-output name=scratch-org-password::$(echo $generate_password_output | jq -r '.result.password')"
           
 
