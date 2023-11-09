@@ -39,7 +39,7 @@ jobs:
       - name: Query Package Version
         id: package_version
         run: |
-              PACKAGE_ID_CORE=$(sfdx force:package:list | grep -E 'Build RC' | grep -o '04t\w*')
+              PACKAGE_ID_CORE=$(sfdx force:package:list | grep -E 'Build RC' | grep -o '0Ho\w*')
               echo "PACKAGE_ID_CORE: $PACKAGE_ID_CORE"
 
       - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
