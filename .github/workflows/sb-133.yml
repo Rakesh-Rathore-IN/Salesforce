@@ -1,30 +1,42 @@
+# Define the name of the workflow
 name: CI
 
+# Specify when the workflow should run
 on:
+  # Triggers the workflow on pull_request events but only for the rc-merge branch
   pull_request:
     branches: rc-merge
 
+# Define the jobs to be executed
 jobs:
+  # Job to create a package
   Create-package:
     runs-on: ubuntu-latest
+    # Execute the job only if the GitHub actor is not the dependabot
     if: ${{ github.actor != 'dependabot[bot]' }}
+    # Define outputs for the job
     outputs:
       package-version-id: ${{ steps.installPackage.outputs.package-version-id }}
     steps:
+      # Step: Checkout the source code
       - name: 'Checkout source code'
         uses: actions/checkout@v2
 
+      # Step: Install Salesforce CLI
       - name: 'Install Salesforce CLI'
         run: |
+          # Download and install Salesforce CLI
           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
           mkdir ~/sfdx
           tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
           ~/sfdx/bin/sfdx version
 
+      # Step: Store secret for Dev Hub
       - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
         shell: bash
         run: |
+          # Store Dev Hub URL secret in a file
           echo ${{ secrets.DEVHUB_SFDX_URL }} > ./DEVHUB_SFDX_URL.txt
           secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
           if [ $secretFileSize == 1 ]; then
@@ -32,45 +44,71 @@ jobs:
             exit 1;
           fi
 
+      # Step: Authenticate Dev Hub
       - name: 'Authenticate Dev Hub'
         run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
 
+      # Step: Create Salesforce package
       - name: 'RC Package Create'
         id: installPackage
         run: |
-            package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
-            echo "Package Version Output: $package_version_output"
-            package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
-            echo "Package Version ID: $package_version_id"
-            echo "::set-output name=package-version-id::$package_version_id"
+          # Create the package and store the output
+          package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
+          echo "Package Version Output: $package_version_output"
+          package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
+          echo "Package Version ID: $package_version_id"
+          echo "::set-output name=package-version-id::$package_version_id"
 
+  # Job to install the package on a Scratch Org
   Install-Package:
     needs: Create-package
     runs-on: ubuntu-latest
     steps:
+      # Step: Checkout the source code
       - name: 'Checkout source code'
         uses: actions/checkout@v2
 
+      # Step: Install Salesforce CLI
       - name: 'Install Salesforce CLI'
         run: |
+          # Download and install Salesforce CLI
           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
           mkdir ~/sfdx
           tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
           ~/sfdx/bin/sfdx version
-     
-      - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
+
+      # Step: Store secret for Dev Hub
+      - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
         shell: bash
         run: |
-          echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
-          secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
+          # Store Dev Hub URL secret in a file
+          echo ${{ secrets.DEVHUB_SFDX_URL }} > ./DEVHUB_SFDX_URL.txt
+          secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
           if [ $secretFileSize == 1 ]; then
-            echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
+            echo "Missing DEVHUB_SFDX_URL secret. Is this workflow running on a fork?";
             exit 1;
           fi
-          
-      - name: 'Authenticate Normal Org'
-        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
 
+      # Step: Authenticate Dev Hub
+      - name: 'Authenticate Dev Hub'
+        run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
+
+      # Step: Create a Scratch Org
+      - name: Create Scratch Org
+        id: createScratchOrg
+        run: |
+          # Create a Scratch Org and store relevant information in outputs
+          sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json
+          echo "Scratch Org Created"
+          sfdx force:user:password:generate -u scratch-org --json | jq -r '.result.password' > $GITHUB_WORKSPACE/scratch-org-password.txt
+          echo "Password Generated"
+          cat $GITHUB_WORKSPACE/scratch-org-password.txt
+          echo "::set-output name=scratch-org-id::$(sfdx force:org:display --json | jq -r '.result.id')"
+          echo "::set-output name=scratch-org-username::$(sfdx force:user:display --json | jq -r '.result.username')"
+          echo "::set-output name=scratch-org-password::$(cat $GITHUB_WORKSPACE/scratch-org-password.txt)"
+          echo "::set-output name=scratch-org-url::$(sfdx force:org:open --json | jq -r '.result.url')"
+
+      # Step: Install the package on the Scratch Org
       - name: 'Install package on scratch org'
-        run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org InstallTesting -w 10
+        run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org scratch-org -w 10
