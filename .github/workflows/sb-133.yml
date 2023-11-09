@@ -34,6 +34,7 @@ jobs:
         run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
 
       - name: 'RC Package Create'
+        id: installPackage
         run: |
             package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
             echo "Package Version Output: $package_version_output"
@@ -41,22 +42,21 @@ jobs:
       - name: Query Package Version
         id: package_version
         run: |
-            package_version_id=$(echo $package_version_output | jq -r '.SubscriberPackageVersionId')
-            echo "Package Version ID: $package_version_id"
-            echo "Package Version Output: $package_version_output"
+            package_version_id="${{ steps.installPackage.package_version_output}}"
+            echo "Output Variable from Step 1: $package_version_id"
 
-      - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
-        shell: bash
-        run: |
-          echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
-          secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
-          if [ $secretFileSize == 1 ]; then
-            echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
-            exit 1;
-          fi
+      #- name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
+      #  shell: bash
+      #  run: |
+      #    echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
+      #    secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
+      #    if [ $secretFileSize == 1 ]; then
+      #      echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
+      #      exit 1;
+      #    fi
           
-      - name: 'Authenticate Normal Org'
-        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
+      #- name: 'Authenticate Normal Org'
+      #  run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
 
-      - name: 'Install package on scratch org'
-        run: sf package install --package  $package_version_id --target-org InstallTesting -w 10
+      #- name: 'Install package on scratch org'
+      #  run: sf package install --package  $package_version_id --target-org InstallTesting -w 10
