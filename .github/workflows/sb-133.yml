@@ -38,12 +38,15 @@ jobs:
         run: |
             package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
             echo "Package Version Output: $package_version_output"
+            package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
+            echo "Package Version ID: $package_version_id"
+            echo "::set-output name=package-version-id::$package_version_id"
       
-      - name: Query Package Version
-        id: package_version
-        run: |
-            package_version_id="${{steps.installPackage.outputs.package_version_output}}"
-            echo "Output Variable from Step 1: $package_version_id"
+      #- name: Query Package Version
+      #  id: package_version
+      #  run: |
+      #      package_version_id="${{steps.installPackage.outputs.package_version_output}}"
+       #     echo "Output Variable from Step 1: $package_version_id"
 
       #- name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
       #  shell: bash
