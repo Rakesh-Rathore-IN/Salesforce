@@ -6,7 +6,7 @@
       "package": "Build RC",
       "versionName": "ver 0.1",
       "versionNumber": "0.1.0.NEXT",
-      "versionDescription": "Testing For CI CD Done"
+      "versionDescription": "Testing For CI CD"
     },
     {
       "path": "force-app",
