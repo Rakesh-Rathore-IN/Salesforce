@@ -34,12 +34,12 @@ jobs:
         run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
 
       - name: 'RC Package Create'
-        run: sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json > package_create_result.txt
-    
+        run: sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation
+        
       - name: Query Package Version
         id: package_version
         run: |
-              PACKAGE_ID_CORE=$(sfdx force:package:list | grep -E 'Build RC' | grep -o '0Ho\w*')
+              PACKAGE_ID_CORE=$(sfdx force:package:list | grep -E 'Build RC' | grep -o '04\w*')
               echo "PACKAGE_ID_CORE: $PACKAGE_ID_CORE"
 
       - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
@@ -56,4 +56,4 @@ jobs:
         run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
 
       - name: 'Install package on scratch org'
-        run: sf package install --package  --target-org InstallTesting -w 10
+        run: sf package install --package  "$PACKAGE_ID_CORE" --target-org InstallTesting -w 10
