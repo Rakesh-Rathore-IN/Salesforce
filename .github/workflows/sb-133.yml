@@ -38,15 +38,10 @@ jobs:
             package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
             echo "Package Version Output: $package_version_output"
       
-      - name: Install jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install jq -y
-        
       - name: Query Package Version
         id: package_version
         run: |
-            package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
+            package_version_id=$(echo $package_version_output | jq -r '.SubscriberPackageVersionId')
             echo "Package Version ID: $package_version_id"
 
       - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
