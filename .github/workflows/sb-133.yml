@@ -41,7 +41,7 @@ jobs:
       - name: Query Package Version
         id: package_version
         run: |
-            package_version_id=$(echo $package_version_output | jq -r 'result.SubscriberPackageVersionId')
+            package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
             echo "Package Version ID: $package_version_id"
 
       - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
