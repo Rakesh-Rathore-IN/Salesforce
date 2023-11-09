@@ -8,6 +8,8 @@ jobs:
   Create-package:
     runs-on: ubuntu-latest
     if: ${{ github.actor != 'dependabot[bot]' }}
+    outputs:
+      package-version-id: ${{ steps.installPackage.outputs.package-version-id }}
     steps:
       - name: 'Checkout source code'
         uses: actions/checkout@v2
@@ -41,25 +43,23 @@ jobs:
             package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
             echo "Package Version ID: $package_version_id"
             echo "::set-output name=package-version-id::$package_version_id"
-      
-      #- name: Query Package Version
-      #  id: package_version
-      #  run: |
-      #      package_version_id="${{steps.installPackage.outputs.package_version_output}}"
-       #     echo "Output Variable from Step 1: $package_version_id"
 
-      #- name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
-      #  shell: bash
-      #  run: |
-      #    echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
-      #    secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
-      #    if [ $secretFileSize == 1 ]; then
-      #      echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
-      #      exit 1;
-      #    fi
+  Install-Package:
+    needs: Create-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
+        shell: bash
+        run: |
+          echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
+          secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
+          if [ $secretFileSize == 1 ]; then
+            echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
+            exit 1;
+          fi
           
-      #- name: 'Authenticate Normal Org'
-      #  run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
+      - name: 'Authenticate Normal Org'
+        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
 
-      #- name: 'Install package on scratch org'
-      #  run: sf package install --package  $package_version_id --target-org InstallTesting -w 10
+      - name: 'Install package on scratch org'
+        run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org InstallTesting -w 10
