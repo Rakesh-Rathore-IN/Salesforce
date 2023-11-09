@@ -42,7 +42,7 @@ jobs:
       - name: Query Package Version
         id: package_version
         run: |
-            package_version_id="${{ steps.installPackage.package_version_output}}"
+            package_version_id="${{steps.installPackage.outputs.package_version_output}}"
             echo "Output Variable from Step 1: $package_version_id"
 
       #- name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
