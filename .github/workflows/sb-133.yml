@@ -13,6 +13,7 @@ jobs:
       username: ${{ steps.createScratchOrg.outputs.scratch-org-username }}
       password: ${{ steps.createScratchOrg.outputs.scratch-org-password }}
       url: ${{ steps.createScratchOrg.outputs.scratch-org-url }}
+      package-version-id: ${{ steps.installPackage.outputs.package-version-id }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -41,11 +42,15 @@ jobs:
       - name: Create Scratch Org
         id: createScratchOrg
         run: |
-          sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json
-          echo "::set-output name=scratch-org-id::$(sfdx force:org:display --json | jq -r '.result.id')"
-          echo "::set-output name=scratch-org-username::$(sfdx force:user:display --json | jq -r '.result.username')"
-          echo "::set-output name=scratch-org-password::$(sfdx force:user:display --json | jq -r '.result.password')"
-          echo "::set-output name=scratch-org-url::$(sfdx force:org:open --json | jq -r '.result.url')"
+          scratch_org_output=$(sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json)
+          echo "Scratch Org Output: $scratch_org_output"
+          echo "::set-output name=scratch-org-url::$(echo $package_version_output | jq -r '.result.LoginUrl')"
+          echo "::set-output name=scratch-org-username::$(echo $package_version_output | jq -r '.result.SignupUsername')"
+          echo "::set-output name=scratch-org-id::$(echo $package_version_output | jq -r '.result.Id')"
+          generate_passowrd_output=$(sfdx force:user:password:generate -u scratch-org --json)
+          echo "Generate Passowrd Output: $generate_passowrd_output"
+          echo "::set-output name=scratch-org-password::$(echo $generate_passowrd_output | jq -r '.result.password')"
+          
 
   send-email:
     needs: create-scratch-org
