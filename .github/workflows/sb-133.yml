@@ -1,54 +1,57 @@
-name: CI
+name: Create Scratch Org and Send Email
 
 on:
-  pull_request:
-    branches: rc-merge
+  push:
+    branches:
+      - rc-merge
 
 jobs:
-  Create-package:
+  create-scratch-org:
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'dependabot[bot]' }}
     outputs:
-      package-version-id: ${{ steps.installPackage.outputs.package-version-id }}
+      id: ${{ steps.createScratchOrg.outputs.scratch-org-id }}
+      username: ${{ steps.createScratchOrg.outputs.scratch-org-username }}
+      password: ${{ steps.createScratchOrg.outputs.scratch-org-password }}
+      url: ${{ steps.createScratchOrg.outputs.scratch-org-url }}
     steps:
-      - name: 'Checkout source code'
+      - name: Checkout source code
         uses: actions/checkout@v2
 
-      - name: 'Install Salesforce CLI'
+      - name: Install Salesforce CLI
         run: |
           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
           mkdir ~/sfdx
           tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
           ~/sfdx/bin/sfdx version
-
+      
       - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
         shell: bash
         run: |
-          echo ${{ secrets.DEVHUB_SFDX_URL }} > ./DEVHUB_SFDX_URL.txt
-          secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
+          echo ${{ secrets.SFDX_AUTH_B2B_URL }} > ./SFDX_AUTH_B2B_URL.txt
+          secretFileSize=$(wc -c "./SFDX_AUTH_B2B_URL.txt" | awk '{print $1}')
           if [ $secretFileSize == 1 ]; then
-            echo "Missing DEVHUB_SFDX_URL secret. Is this workflow running on a fork?";
+            echo "Missing SFDX_AUTH_B2B_URL secret. Is this workflow running on a fork?";
             exit 1;
-          fi
+          fi    
 
-      - name: 'Authenticate Dev Hub'
-        run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
+      - name: Authenticate Dev Hub
+        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_B2B_URL.txt -a devhub -d
 
-      - name: 'RC Package Create'
-        id: installPackage
+      - name: Create Scratch Org
+        id: createScratchOrg
         run: |
-            package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
-            echo "Package Version Output: $package_version_output"
-            package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
-            echo "Package Version ID: $package_version_id"
-            echo "::set-output name=package-version-id::$package_version_id"
+          sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json
+          echo "::set-output name=scratch-org-id::$(sfdx force:org:display --json | jq -r '.result.id')"
+          echo "::set-output name=scratch-org-username::$(sfdx force:user:display --json | jq -r '.result.username')"
+          echo "::set-output name=scratch-org-password::$(sfdx force:user:display --json | jq -r '.result.password')"
+          echo "::set-output name=scratch-org-url::$(sfdx force:org:open --json | jq -r '.result.url')"
 
-  Install-Package:
-    needs: Create-package
+  send-email:
+    needs: create-scratch-org
     runs-on: ubuntu-latest
     steps:
-      - name: 'Checkout source code'
+      - name: Checkout repository
         uses: actions/checkout@v2
 
       - name: Set up Node.js
@@ -57,31 +60,7 @@ jobs:
           node-version: '14'
 
       - name: Install dependencies
-        run: npm install  
-
-      - name: 'Install Salesforce CLI'
-        run: |
-          wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
-          mkdir ~/sfdx
-          tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
-          echo "$HOME/sfdx/bin" >> $GITHUB_PATH
-          ~/sfdx/bin/sfdx version
-     
-      - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
-        shell: bash
-        run: |
-          echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
-          secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
-          if [ $secretFileSize == 1 ]; then
-            echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
-            exit 1;
-          fi
-          
-      - name: 'Authenticate Normal Org'
-        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
-
-      - name: 'Install package on scratch org'
-        run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org InstallTesting -w 10
+        run: npm install
 
       - name: Send Email
         uses: dawidd6/action-send-mail@v2
@@ -94,9 +73,8 @@ jobs:
           to: 'banna.rakesh@gmail.com'
           from: 'rakesh.rathore@metacube.com'
           body: |
-            Hello,
-            Package Id: ${{ needs.Create-package.outputs.package-version-id }}
-            This is a test email sent from GitHub Actions.
-            Best regards,
-            Your Name  
-        
+            The GitHub Actions workflow has completed successfully.
+            Scratch Org ID: ${{ needs.create-scratch-org.outputs.scratch-org-id }}
+            Scratch Org Username: ${{ needs.create-scratch-org.outputs.scratch-org-username }}
+            Scratch Org Password: ${{ needs.create-scratch-org.outputs.scratch-org-password }}
+            Scratch Org URL: ${{ needs.create-scratch-org.outputs.scratch-org-url }}
