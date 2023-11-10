@@ -75,7 +75,7 @@ jobs:
       #- name: 'Install package on scratch org'
       #  run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org InstallTesting -w 10
 	  
-	  - name: Set up Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
