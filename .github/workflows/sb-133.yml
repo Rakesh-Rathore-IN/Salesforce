@@ -42,5 +42,5 @@ jobs:
       - name: Create Scratch Org
         id: createScratchOrg
         run: |
-          sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json
+          sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 
          
