@@ -44,6 +44,12 @@ jobs:
             echo "Package Version ID: $package_version_id"
             echo "::set-output name=package-version-id::$package_version_id"
 
+      - name: 'Create data file'
+        run: echo "Data to share" > data.txt
+        # Store the data in an environment variable
+        env:
+          SHARED_DATA: "Data to share"   
+
   Install-Package:
     needs: Create-package
     runs-on: ubuntu-latest
@@ -79,7 +85,10 @@ jobs:
     
       - name: Install dependencies
         run: npm install
-    
+        
+      - name: Read data from environment variable
+        run: echo "Data in the env:$SHARED_DATA"
+        
       - name: Send Email
         uses: dawidd6/action-send-mail@v2
         with:
