@@ -4,7 +4,7 @@ name: CI
 # Specify when the workflow should run
 on:
   # Triggers the workflow on pull_request events but only for the Master branch
-  pull_request:
+  push:
     branches: master
 
 # Define the jobs to be executed
