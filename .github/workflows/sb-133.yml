@@ -1,51 +1,81 @@
-name: Create Scratch Org and Send Email
+name: CI
 
 on:
-  push:
-    branches:
-      - rc-merge
+  pull_request:
+    branches: rc-merge
 
 jobs:
-  create-scratch-org:
+  Create-package:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    outputs:
+      package-version-id: ${{ steps.installPackage.outputs.package-version-id }}
     steps:
-      - name: Checkout source code
+      - name: 'Checkout source code'
         uses: actions/checkout@v2
 
-      - name: Install Salesforce CLI
+      - name: 'Install Salesforce CLI'
         run: |
           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
           mkdir ~/sfdx
           tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
           ~/sfdx/bin/sfdx version
-      
+
       - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
         shell: bash
         run: |
-          echo ${{ secrets.SFDX_AUTH_B2B_URL }} > ./SFDX_AUTH_B2B_URL.txt
-          secretFileSize=$(wc -c "./SFDX_AUTH_B2B_URL.txt" | awk '{print $1}')
+          echo ${{ secrets.DEVHUB_SFDX_URL }} > ./DEVHUB_SFDX_URL.txt
+          secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
           if [ $secretFileSize == 1 ]; then
-            echo "Missing SFDX_AUTH_B2B_URL secret. Is this workflow running on a fork?";
+            echo "Missing DEVHUB_SFDX_URL secret. Is this workflow running on a fork?";
             exit 1;
-          fi    
+          fi
 
-      - name: Authenticate Dev Hub
-        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_B2B_URL.txt -a devhub -d
+      - name: 'Authenticate Dev Hub'
+        run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
 
-      - name: Create Scratch Org
-        id: createScratchOrg
+      - name: 'RC Package Create'
+        id: installPackage
         run: |
-          scratch_org_output=$(sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json)
-          echo "Scratch Org Output: $scratch_org_output"
-          echo "LOGIN_URL=$(echo $scratch_org_output | jq -r '.result.LoginUrl')" >> $GITHUB_ENV
-          echo "SIGNUP_USERNAME=$(echo $scratch_org_output | jq -r '.result.SignupUsername')" >> $GITHUB_ENV
-          echo "SCRATCH_ORG_ID=$(echo $scratch_org_output | jq -r '.result.Id')" >> $GITHUB_ENV
-          generate_password_output=$(sfdx force:user:password:generate -u scratch-org --json)
-          echo "Generate Password Output: $generate_password_output"
-          echo "SCRATCH_ORG_PASSWORD=$(echo $generate_password_output | jq -r '.result.password')" >> $GITHUB_ENV
-    
-      - name: Set up Node.js
+            package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
+            echo "Package Version Output: $package_version_output"
+            package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
+            echo "Package Version ID: $package_version_id"
+            echo "::set-output name=package-version-id::$package_version_id"
+
+  Install-Package:
+    needs: Create-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+
+      - name: 'Install Salesforce CLI'
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
+          mkdir ~/sfdx
+          tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
+          echo "$HOME/sfdx/bin" >> $GITHUB_PATH
+          ~/sfdx/bin/sfdx version
+     
+      - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
+        shell: bash
+        run: |
+          echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
+          secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
+          if [ $secretFileSize == 1 ]; then
+            echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
+            exit 1;
+          fi
+          
+      - name: 'Authenticate Normal Org'
+        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
+
+      #- name: 'Install package on scratch org'
+      #  run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org InstallTesting -w 10
+	  
+	  - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
@@ -65,8 +95,7 @@ jobs:
           from: 'rakesh.rathore@metacube.com'
           body: |
             The GitHub Actions workflow has completed successfully.
-            Scratch Org ID: ${{ env.SCRATCH_ORG_ID }}
-            Scratch Org Username: ${{ env.SIGNUP_USERNAME }}
-            Scratch Org Password: ${{ env.SCRATCH_ORG_PASSWORD }}
-            Scratch Org URL: ${{ env.LOGIN_URL }}
-         
+            Scratch Org ID: ${{ needs.Create-package.outputs.package-version-id }}
+            Scratch Org Username: 
+            Scratch Org Password:
+            Scratch Org URL: 
