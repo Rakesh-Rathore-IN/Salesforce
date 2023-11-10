@@ -51,27 +51,27 @@ jobs:
           echo "Generate Password Output: $generate_password_output"
           echo "SCRATCH_ORG_PASSWORD=$(echo $generate_password_output | jq -r '.result.password')" >> $GITHUB_ENV
     
-  - name: Set up Node.js
-    uses: actions/setup-node@v3
-    with:
-      node-version: '14'
-
-  - name: Install dependencies
-    run: npm install
-
-  - name: Send Email
-    uses: dawidd6/action-send-mail@v2
-    with:
-      server_address: smtp.gmail.com
-      server_port: 587
-      username: 'rakesh.rathore@metacube.com'
-      password: 'rpukphitgnihitil'
-      subject: 'GitHub Actions Email'
-      to: 'banna.rakesh@gmail.com'
-      from: 'rakesh.rathore@metacube.com'
-      body: |
-        The GitHub Actions workflow has completed successfully.
-        Scratch Org ID: ${{ env.SCRATCH_ORG_ID }}
-        Scratch Org Username: ${{ env.SIGNUP_USERNAME }}
-        Scratch Org Password: ${{ env.SCRATCH_ORG_PASSWORD }}
-        Scratch Org URL: ${{ env.LOGIN_URL }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+    
+      - name: Install dependencies
+        run: npm install
+    
+      - name: Send Email
+        uses: dawidd6/action-send-mail@v2
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: 'rakesh.rathore@metacube.com'
+          password: 'rpukphitgnihitil'
+          subject: 'GitHub Actions Email'
+          to: 'banna.rakesh@gmail.com'
+          from: 'rakesh.rathore@metacube.com'
+          body: |
+            The GitHub Actions workflow has completed successfully.
+            Scratch Org ID: ${{ env.SCRATCH_ORG_ID }}
+            Scratch Org Username: ${{ env.SIGNUP_USERNAME }}
+            Scratch Org Password: ${{ env.SCRATCH_ORG_PASSWORD }}
+            Scratch Org URL: ${{ env.LOGIN_URL }}
