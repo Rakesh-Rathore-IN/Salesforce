@@ -8,12 +8,6 @@ on:
 jobs:
   create-scratch-org:
     runs-on: ubuntu-latest
-    outputs:
-      id: ${{ steps.createScratchOrg.outputs.scratch-org-id }}
-      username: ${{ steps.createScratchOrg.outputs.scratch-org-username }}
-      password: ${{ steps.createScratchOrg.outputs.scratch-org-password }}
-      url: ${{ steps.createScratchOrg.outputs.scratch-org-url }}
-      package-version-id: ${{ steps.installPackage.outputs.package-version-id }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -42,5 +36,37 @@ jobs:
       - name: Create Scratch Org
         id: createScratchOrg
         run: |
-          sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 
+          scratch_org_output=$(sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json)
+          echo "Scratch Org Output: $scratch_org_output"
+          echo "LOGIN_URL=$(echo $scratch_org_output | jq -r '.result.LoginUrl')" >> $GITHUB_ENV
+          echo "SIGNUP_USERNAME=$(echo $scratch_org_output | jq -r '.result.SignupUsername')" >> $GITHUB_ENV
+          echo "SCRATCH_ORG_ID=$(echo $scratch_org_output | jq -r '.result.Id')" >> $GITHUB_ENV
+          generate_password_output=$(sfdx force:user:password:generate -u scratch-org --json)
+          echo "Generate Password Output: $generate_password_output"
+          echo "SCRATCH_ORG_PASSWORD=$(echo $generate_password_output | jq -r '.result.password')" >> $GITHUB_ENV
+    
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+    
+      - name: Install dependencies
+        run: npm install
+    
+      - name: Send Email
+        uses: dawidd6/action-send-mail@v2
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: 'rakesh.rathore@metacube.com'
+          password: 'rpukphitgnihitil'
+          subject: 'GitHub Actions Email'
+          to: 'banna.rakesh@gmail.com'
+          from: 'rakesh.rathore@metacube.com'
+          body: |
+            The GitHub Actions workflow has completed successfully.
+            Scratch Org ID: ${{ env.SCRATCH_ORG_ID }}
+            Scratch Org Username: ${{ env.SIGNUP_USERNAME }}
+            Scratch Org Password: ${{ env.SCRATCH_ORG_PASSWORD }}
+            Scratch Org URL: ${{ env.LOGIN_URL }}
          
