@@ -71,10 +71,7 @@ jobs:
           
       - name: 'Authenticate Normal Org'
         run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
-
-      #- name: 'Install package on scratch org'
-      #  run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org InstallTesting -w 10
-	  
+    
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
