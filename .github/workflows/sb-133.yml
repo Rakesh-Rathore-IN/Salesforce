@@ -15,8 +15,6 @@ jobs:
     # Execute the job only if the GitHub actor is not the dependabot
     if: ${{ github.actor != 'dependabot[bot]' }}
     # Define outputs for the job
-    outputs:
-      package-version-id: ${{ steps.installPackage.outputs.package-version-id }}
     steps:
       # Step: Checkout the source code
       - name: 'Checkout source code'
@@ -56,8 +54,14 @@ jobs:
           package_version_output=$(sf force package version create -p "Build RC" -w 10 -x -v devhub --skip-validation --json)
           echo "Package Version Output: $package_version_output"
           package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
-          echo "Package Version ID: $package_version_id"
-          echo "::set-output name=package-version-id::$package_version_id"
+          echo "$package_version_id" > package_version.txt
+    
+      - name: Upload shared data as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: shared-data
+          path: package_version.txt
+         
 
   # Job to install the package on a Scratch Org
   Install-Package:
@@ -67,6 +71,12 @@ jobs:
       # Step: Checkout the source code
       - name: 'Checkout source code'
         uses: actions/checkout@v2
+
+      - name: Download shared data artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: shared-data
+          path: ${{ runner.temp }}/shared-data
 
       # Step: Install Salesforce CLI
       - name: 'Install Salesforce CLI'
@@ -111,4 +121,6 @@ jobs:
 
       # Step: Install the package on the Scratch Org
       - name: 'Install package on scratch org'
-        run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org scratch-org -w 10
+        run: |
+          package_version=$(cat ${{ runner.temp }}/shared-data/package_version.txt)
+          sf package install --package $package_version --target-org scratch-org -w 10
