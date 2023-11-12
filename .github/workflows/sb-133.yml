@@ -130,12 +130,12 @@ jobs:
       - name: Share scratch org access to test team
         uses: dawidd6/action-send-mail@v2
         with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: 'rakesh.rathore@metacube.com'
-          password: 'rpukphitgnihitil'
-          subject: 'GitHub Actions Email'
-          to: 'banna.rakesh@gmail.com'
+          server_address: ${{ secrets.SMTP_SERVER_ADDRESS }}
+          server_port: ${{ secrets.SMTP_SERVER_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: 'GitHub Actions run after obtaining the login details for the Scratch Org'
+          to: 'rakesh.rathore@metacube.com, banna.rakesh@gmail.com'
           from: 'rakesh.rathore@metacube.com'
           body: |
             Hello Test Team,
