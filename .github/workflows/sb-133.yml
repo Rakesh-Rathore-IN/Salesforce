@@ -109,18 +109,48 @@ jobs:
         id: createScratchOrg
         run: |
           # Create a Scratch Org and store relevant information in outputs
-          sfdx force:org:create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json
-          echo "Scratch Org Created"
-          sfdx force:user:password:generate -u scratch-org --json | jq -r '.result.password' > $GITHUB_WORKSPACE/scratch-org-password.txt
-          echo "Password Generated"
-          cat $GITHUB_WORKSPACE/scratch-org-password.txt
-          echo "::set-output name=scratch-org-id::$(sfdx force:org:display --json | jq -r '.result.id')"
-          echo "::set-output name=scratch-org-username::$(sfdx force:user:display --json | jq -r '.result.username')"
-          echo "::set-output name=scratch-org-password::$(cat $GITHUB_WORKSPACE/scratch-org-password.txt)"
-          echo "::set-output name=scratch-org-url::$(sfdx force:org:open --json | jq -r '.result.url')"
+          sf force org create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json > scratch-org-data.txt
+          instanceUrl=$(cat scratch-org-data.txt | jq -r '.result.authFields.instanceUrl')
+          echo "instanceUrl=$instanceUrl" >> $GITHUB_ENV
+          sf force user password generate -u scratch-org --json > password-generate-data.txt
+          userName=$(cat password-generate-data.txt | jq -r '.result.username')
+          echo "userName=$userName" >> $GITHUB_ENV
+          password=$(cat password-generate-data.txt | jq -r '.result.password')
+          echo "password=$password" >> $GITHUB_ENV
+         
 
       # Step: Install the package on the Scratch Org
       - name: 'Install package on scratch org'
         run: |
           package_version=$(cat ${{ runner.temp }}/shared-data/package_version.txt)
           sf package install --package $package_version --target-org scratch-org -w 10
+
+          
+      # Step: Install the package on the Scratch Org
+      - name: Share scratch org access to test team
+        uses: dawidd6/action-send-mail@v2
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: 'rakesh.rathore@metacube.com'
+          password: 'rpukphitgnihitil'
+          subject: 'GitHub Actions Email'
+          to: 'banna.rakesh@gmail.com'
+          from: 'rakesh.rathore@metacube.com'
+          body: |
+            Hello Test Team,
+    
+            This is a test email sent from GitHub Actions to share some important details with you.
+      
+            Scratch Org URL: ${{ env.instanceUrl }}
+      
+            Scratch Org Login Email: ${{ env.userName }}
+      
+            Scratch Org Password: ${{ env.password }}
+      
+            If you have any questions or need further assistance, please don't hesitate to reach out.
+      
+            Best regards,
+            Rakesh
+
+    
