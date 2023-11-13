@@ -134,9 +134,9 @@ jobs:
           server_port: ${{ secrets.SMTP_SERVER_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: 'GitHub Actions run after obtaining the login details for the Scratch Org'
-          to: 'rakesh.rathore@metacube.com, banna.rakesh@gmail.com'
-          from: 'rakesh.rathore@metacube.com'
+          subject: ${{ vars.EMAIL_SUBJECT }}
+          to: ${{ vars.EMAIL_ADDRESS_TEST_TEAM }}
+          from: ${{ secrets.SMTP_USERNAME }}
           body: |
             Hello Test Team,
     
