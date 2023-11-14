@@ -1,156 +1,66 @@
-# Define the name of the workflow
+# This is a basic workflow to help you get started with Actions
+
 name: CI
-
-# Specify when the workflow should run
+# Controls when the workflow will run
 on:
-  # Triggers the workflow on pull_request events but only for the rc-merge branch
+  # Triggers the workflow on push or pull request events but only for the rc-merge branch
   pull_request:
-    branches: rc-beta
-
-# Define the jobs to be executed
+    branches: rc-merge
+   # Jobs to be executed
 jobs:
-  # Job to create a package
-  Create-package:
-    runs-on: ubuntu-latest
-    # Execute the job only if the GitHub actor is not the dependabot
-    if: ${{ github.actor != 'dependabot[bot]' }}
-    # Define outputs for the job
-    steps:
-      # Step: Checkout the source code
-      - name: 'Checkout source code'
-        uses: actions/checkout@v2
+    scratch-org-test:
+        runs-on: ubuntu-latest        
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        steps:
+            # Checkout the source code
+            - name: 'Checkout source code'
+              uses: actions/checkout@v2
+              
+            # Install Salesforce CLI
+            - name: 'Install Salesforce CLI'
+              run: |
+                  wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
+                  mkdir ~/sfdx
+                  tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
+                  echo "$HOME/sfdx/bin" >> $GITHUB_PATH
+                  ~/sfdx/bin/sfdx version
+                  
+            # Store secret for dev hub
+            - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
+              shell: bash
+              run: |
+                  echo ${{ secrets.DEVHUB_SFDX_URL}} > ./DEVHUB_SFDX_URL.txt
+                  secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
+                  if [ $secretFileSize == 1 ]; then
+                      echo "Missing DEVHUB_SFDX_URL secret. Is this workflow running on a fork?";
+                      exit 1;
+                  fi
+                  
+            # Authenticate dev hub
+            - name: 'Authenticate Dev Hub'
+              run: sf auth sfdxurl store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
+            
+            # Create scratch org
+            - name: 'Create scratch org'
+              run: sf force org create -f config/project-scratch-def.json -a scratch-org -s -d 1
 
-      # Step: Install Salesforce CLI
-      - name: 'Install Salesforce CLI'
-        run: |
-          # Download and install Salesforce CLI
-          wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
-          mkdir ~/sfdx
-          tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
-          echo "$HOME/sfdx/bin" >> $GITHUB_PATH
-          ~/sfdx/bin/sfdx version
+            # Deploy source to scratch org
+            - name: 'Push source to scratch org'
+              run: sf force source push -w 5 --target-org scratch-org --forceoverwrite
+              
+            # Run Apex tests in scratch org
+            - name: 'Run Apex tests'
+              run: sf force apex test run -c -r human -d ./tests/apex -w 20
+            
+            # Run placeholder for JS / UI tests in scratch org - TODO
+            
+            # Delete temporary test file that Codecov is unable to parse
+            - name: 'Delete coverage file (temporary step)'
+              run: rm ./tests/apex/test-result-707*-codecoverage.json
 
-      # Step: Store secret for Dev Hub
-      - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
-        shell: bash
-        run: |
-          # Store Dev Hub URL secret in a file
-          echo ${{ secrets.DEVHUB_SFDX_URL }} > ./DEVHUB_SFDX_URL.txt
-          secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
-          if [ $secretFileSize == 1 ]; then
-            echo "Missing DEVHUB_SFDX_URL secret. Is this workflow running on a fork?";
-            exit 1;
-          fi
+            # Housekeeping
+            - name: 'Delete scratch org'
+              if: always()
+              run: sf force org delete -p -u scratch-org          
 
-      # Step: Authenticate Dev Hub
-      - name: 'Authenticate Dev Hub'
-        run: sf auth sfdxurl store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
-
-      # Step: Create Salesforce package
-      - name: 'RC Package Create'
-        id: installPackage
-        run: |
-          # Create the package and store the output
-          package_version_output=$(sf force package version create -p "Build RC" -w 10 -x -v devhub --skip-validation --json)
-          echo "Package Version Output: $package_version_output"
-          package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
-          echo "$package_version_id" > package_version.txt
-    
-      - name: Upload shared data as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: shared-data
-          path: package_version.txt
-         
-
-  # Job to install the package on a Scratch Org
-  Install-Package:
-    needs: Create-package
-    runs-on: ubuntu-latest
-    steps:
-      # Step: Checkout the source code
-      - name: 'Checkout source code'
-        uses: actions/checkout@v2
-
-      - name: Download shared data artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: shared-data
-          path: ${{ runner.temp }}/shared-data
-
-      # Step: Install Salesforce CLI
-      - name: 'Install Salesforce CLI'
-        run: |
-          # Download and install Salesforce CLI
-          wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
-          mkdir ~/sfdx
-          tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
-          echo "$HOME/sfdx/bin" >> $GITHUB_PATH
-          ~/sfdx/bin/sfdx version
-
-      # Step: Store secret for Dev Hub
-      - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
-        shell: bash
-        run: |
-          # Store Dev Hub URL secret in a file
-          echo ${{ secrets.DEVHUB_SFDX_URL }} > ./DEVHUB_SFDX_URL.txt
-          secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
-          if [ $secretFileSize == 1 ]; then
-            echo "Missing DEVHUB_SFDX_URL secret. Is this workflow running on a fork?";
-            exit 1;
-          fi
-
-      # Step: Authenticate Dev Hub
-      - name: 'Authenticate Dev Hub'
-        run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
-
-      # Step: Create a Scratch Org
-      - name: Create Scratch Org
-        id: createScratchOrg
-        run: |
-          # Create a Scratch Org and store relevant information in outputs
-          sf force org create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json > scratch-org-data.txt
-          instanceUrl=$(cat scratch-org-data.txt | jq -r '.result.authFields.instanceUrl')
-          echo "instanceUrl=$instanceUrl" >> $GITHUB_ENV
-          sf force user password generate -u scratch-org --json > password-generate-data.txt
-          userName=$(cat password-generate-data.txt | jq -r '.result.username')
-          echo "userName=$userName" >> $GITHUB_ENV
-          password=$(cat password-generate-data.txt | jq -r '.result.password')
-          echo "password=$password" >> $GITHUB_ENV
-         
-
-      # Step: Install the package on the Scratch Org
-      - name: 'Install package on scratch org'
-        run: |
-          package_version=$(cat ${{ runner.temp }}/shared-data/package_version.txt)
-          sf package install --package $package_version --target-org scratch-org -w 10
-
-          
-      # Step: Provide test team with access to the scratch org.
-      - name: Share scratch org access to test team
-        uses: dawidd6/action-send-mail@v2
-        with:
-          server_address: ${{ secrets.SMTP_SERVER_ADDRESS }}
-          server_port: ${{ secrets.SMTP_SERVER_PORT }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          subject: ${{ vars.EMAIL_SUBJECT }}
-          to: ${{ vars.EMAIL_ADDRESS_TEST_TEAM }}
-          from: ${{ secrets.SMTP_USERNAME }}
-          body: |
-            Hello Test Team,
-    
-            This is a test email sent from GitHub Actions to share some important details with you.
-      
-            Scratch Org URL: ${{ env.instanceUrl }}
-      
-            Scratch Org Login Email: ${{ env.userName }}
-      
-            Scratch Org Password: ${{ env.password }}
-      
-            If you have any questions or need further assistance, please don't hesitate to reach out.
-      
-            Best regards,
-            Rakesh
-
-    
+            
