@@ -61,6 +61,8 @@ jobs:
             # Housekeeping
             - name: 'Delete scratch org'
               if: always()
-              run: sf force org delete -p -u scratch-org          
+
+              run: sf force org delete -p -u scratch-org        
+
 
             
