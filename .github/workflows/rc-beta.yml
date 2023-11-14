@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  pull_request:
+    branches: rc-beta
+
+jobs:
+  Create-package:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    outputs:
+      package-version-id: ${{ steps.installPackage.outputs.package-version-id }}
+    steps:
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+
+      - name: 'Install Salesforce CLI'
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
+          mkdir ~/sfdx
+          tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
+          echo "$HOME/sfdx/bin" >> $GITHUB_PATH
+          ~/sfdx/bin/sfdx version
+
+      - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
+        shell: bash
+        run: |
+          echo ${{ secrets.DEVHUB_SFDX_URL }} > ./DEVHUB_SFDX_URL.txt
+          secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
+          if [ $secretFileSize == 1 ]; then
+            echo "Missing DEVHUB_SFDX_URL secret. Is this workflow running on a fork?";
+            exit 1;
+          fi
+
+      - name: 'Authenticate Dev Hub'
+        run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a devhub -d
+
+      - name: 'RC Package Create'
+        id: installPackage
+        run: |
+            package_version_output=$(sfdx force:package:version:create -p "Build RC" -w 10 -x -v rakesh.salesbolt@metacube.com --skip-validation --json)
+            echo "Package Version Output: $package_version_output"
+            package_version_id=$(echo $package_version_output | jq -r '.result.SubscriberPackageVersionId')
+            echo "Package Version ID: $package_version_id"
+            echo "::set-output name=package-version-id::$package_version_id"
+
+  Install-Package:
+    needs: Create-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install  
+
+      - name: 'Install Salesforce CLI'
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
+          mkdir ~/sfdx
+          tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
+          echo "$HOME/sfdx/bin" >> $GITHUB_PATH
+          ~/sfdx/bin/sfdx version
+     
+      - name: 'Populate auth file with SFDX_AUTH_URL_TESTING secret'
+        shell: bash
+        run: |
+          echo ${{ secrets.SFDX_AUTH_URL_TESTING }} > ./SFDX_AUTH_URL_TESTING.txt
+          secretFileSize=$(wc -c "./SFDX_AUTH_URL_TESTING.txt" | awk '{print $1}')
+          if [ $secretFileSize == 1 ]; then
+            echo "Missing SFDX_AUTH_URL_TESTING secret. Is this workflow running on a fork?";
+            exit 1;
+          fi
+          
+      - name: 'Authenticate Normal Org'
+        run: sfdx auth:sfdxurl:store -f ./SFDX_AUTH_URL_TESTING.txt -a InstallTesting -d
+
+      - name: 'Install package on scratch org'
+        run: sf package install --package ${{ needs.Create-package.outputs.package-version-id }} --target-org InstallTesting -w 10
+
+      - name: Send Email
+        uses: dawidd6/action-send-mail@v2
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: 'rakesh.rathore@metacube.com'
+          password: 'rpukphitgnihitil'
+          subject: 'GitHub Actions Email'
+          to: 'banna.rakesh@gmail.com'
+          from: 'rakesh.rathore@metacube.com'
+          body: |
+            Hello,
+            Package Id: ${{ needs.Create-package.outputs.package-version-id }}
+            This is a test email sent from GitHub Actions.
+            Best regards,
+            Your Name  
+        
