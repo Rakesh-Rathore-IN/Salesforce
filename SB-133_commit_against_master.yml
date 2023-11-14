@@ -109,7 +109,7 @@ jobs:
         id: createScratchOrg
         run: |
           # Create a Scratch Org and store relevant information in outputs
-          sf force org create -f config/project-scratch-def.json -a scratch-org -d 7 -w 10 --json > scratch-org-data.txt
+          sf force org create -f config/project-scratch-def.json -n -a scratch-org -d 7 -w 10 --json > scratch-org-data.txt
           instanceUrl=$(cat scratch-org-data.txt | jq -r '.result.authFields.instanceUrl')
           echo "instanceUrl=$instanceUrl" >> $GITHUB_ENV
           sf force user password generate -u scratch-org --json > password-generate-data.txt
