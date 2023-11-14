@@ -126,7 +126,7 @@ jobs:
           sf package install --package $package_version --target-org scratch-org -w 10
 
           
-      # Step: Install the package on the Scratch Org
+      # Step: Provide test team with access to the scratch org.
       - name: Share scratch org access to test team
         uses: dawidd6/action-send-mail@v2
         with:
